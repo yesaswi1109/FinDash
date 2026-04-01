@@ -1,0 +1,141 @@
+import React, { useMemo } from 'react';
+import { useFinance } from '../context/FinanceContext';
+import { TrendingUp, TrendingDown, AlertCircle, Award } from 'lucide-react';
+
+export default function Insights() {
+  const { transactions } = useFinance();
+
+  const insights = useMemo(() => {
+    if (transactions.length === 0) return null;
+
+    const expenses = transactions.filter(tx => tx.type === 'expense');
+    const income = transactions.filter(tx => tx.type === 'income');
+
+    // Highest spending category
+    const categories = expenses.reduce((acc, tx) => {
+      acc[tx.category] = (acc[tx.category] || 0) + tx.amount;
+      return acc;
+    }, {} as Record<string, number>);
+
+    let highestCategory = { name: 'None', amount: 0 };
+    for (const [name, amount] of Object.entries(categories)) {
+      if ((amount as number) > highestCategory.amount) {
+        highestCategory = { name, amount: amount as number };
+      }
+    }
+
+    // Monthly comparison (current month vs previous month)
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+    let currentMonthExpense = 0;
+    let prevMonthExpense = 0;
+
+    expenses.forEach(tx => {
+      const txDate = new Date(tx.date);
+      if (txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear) {
+        currentMonthExpense += tx.amount;
+      } else if (txDate.getMonth() === prevMonth && txDate.getFullYear() === prevYear) {
+        prevMonthExpense += tx.amount;
+      }
+    });
+
+    const expenseChange = prevMonthExpense === 0 
+      ? 100 
+      : ((currentMonthExpense - prevMonthExpense) / prevMonthExpense) * 100;
+
+    // Largest single transaction
+    const largestExpense = expenses.reduce((max, tx) => tx.amount > max.amount ? tx : max, { amount: 0, description: '' });
+
+    return {
+      highestCategory,
+      currentMonthExpense,
+      prevMonthExpense,
+      expenseChange,
+      largestExpense
+    };
+  }, [transactions]);
+
+  if (!insights) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+        <AlertCircle size={48} className="mb-4 text-gray-400" />
+        <p className="text-lg">Not enough data to generate insights.</p>
+        <p className="text-sm">Add some transactions to see your financial patterns.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold">Financial Insights</h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Highest Category */}
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-start space-x-4">
+          <div className="p-3 bg-amber-50 dark:bg-amber-900/30 rounded-full text-amber-600 dark:text-amber-400 shrink-0">
+            <Award size={24} />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold mb-1">Top Spending Category</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-2">
+              You've spent the most on <span className="font-semibold text-gray-900 dark:text-gray-100">{insights.highestCategory.name}</span> overall.
+            </p>
+            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+              ${insights.highestCategory.amount.toLocaleString()}
+            </p>
+          </div>
+        </div>
+
+        {/* Monthly Comparison */}
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-start space-x-4">
+          <div className={`p-3 rounded-full shrink-0 ${
+            insights.expenseChange > 0 
+              ? 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400' 
+              : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+          }`}>
+            {insights.expenseChange > 0 ? <TrendingUp size={24} /> : <TrendingDown size={24} />}
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold mb-1">Monthly Spending</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-2">
+              Your spending this month is <span className="font-semibold text-gray-900 dark:text-gray-100">${insights.currentMonthExpense.toLocaleString()}</span>.
+            </p>
+            <div className="flex items-center space-x-2">
+              <span className={`font-bold ${insights.expenseChange > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                {insights.expenseChange > 0 ? '+' : ''}{insights.expenseChange.toFixed(1)}%
+              </span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">vs last month</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Largest Expense */}
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-start space-x-4 md:col-span-2">
+          <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-full text-indigo-600 dark:text-indigo-400 shrink-0">
+            <AlertCircle size={24} />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold mb-1">Largest Single Expense</h3>
+            {insights.largestExpense.amount > 0 ? (
+              <>
+                <p className="text-gray-600 dark:text-gray-400 mb-2">
+                  Your biggest single purchase was <span className="font-semibold text-gray-900 dark:text-gray-100">{insights.largestExpense.description}</span>.
+                </p>
+                <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                  ${insights.largestExpense.amount.toLocaleString()}
+                </p>
+              </>
+            ) : (
+              <p className="text-gray-500">No expenses recorded yet.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
