@@ -1,33 +1,28 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { format, parseISO } from 'date-fns';
-import { Search, Plus, Filter, ArrowUpDown, Edit2, Trash2, X } from 'lucide-react';
+import { Search, Plus, ArrowUpDown, Edit2, Trash2, X, Download } from 'lucide-react';
 import { Transaction } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTransactions } from '../hooks/useTransactions';
+import { formatCurrency } from '../lib/utils';
+import toast from 'react-hot-toast';
 
 export default function TransactionsList() {
-  const { transactions, role, addTransaction, editTransaction, deleteTransaction } = useFinance();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
-  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const { transactions, role, addTransaction, editTransaction, deleteTransaction, isLoading } = useFinance();
+  
+  const {
+    searchTerm,
+    setSearchTerm,
+    filterType,
+    setFilterType,
+    sortOrder,
+    setSortOrder,
+    filteredAndSortedTransactions,
+  } = useTransactions(transactions);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
-
-  const filteredAndSortedTransactions = useMemo(() => {
-    return transactions
-      .filter((tx) => {
-        const matchesSearch = tx.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                              tx.category.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesType = filterType === 'all' || tx.type === filterType;
-        return matchesSearch && matchesType;
-      })
-      .sort((a, b) => {
-        const dateA = new Date(a.date).getTime();
-        const dateB = new Date(b.date).getTime();
-        return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-      });
-  }, [transactions, searchTerm, filterType, sortOrder]);
 
   const handleOpenModal = (tx?: Transaction) => {
     if (tx) setEditingTx(tx);
@@ -38,6 +33,27 @@ export default function TransactionsList() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingTx(null);
+  };
+
+  const handleExportCSV = () => {
+    const headers = ['Date', 'Description', 'Category', 'Type', 'Amount'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredAndSortedTransactions.map(tx =>
+        `${format(parseISO(tx.date), 'yyyy-MM-dd')},"${tx.description}","${tx.category}",${tx.type},${tx.amount}`
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'transactions_report.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Report downloaded successfully!');
   };
 
   const highlightText = (text: string, highlight: string) => {
@@ -61,19 +77,46 @@ export default function TransactionsList() {
     );
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold">Transactions</h2>
+        </div>
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 h-16 animate-pulse"></div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+          <div className="p-6 space-y-4">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="h-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold">Transactions</h2>
-        {role === 'admin' && (
+        <div className="flex gap-2">
           <button
-            onClick={() => handleOpenModal()}
-            className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors"
+            onClick={handleExportCSV}
+            className="flex items-center space-x-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg transition-colors shadow-sm"
           >
-            <Plus size={20} />
-            <span>Add Transaction</span>
+            <Download size={20} />
+            <span className="hidden sm:inline">Download CSV</span>
           </button>
-        )}
+          {role === 'admin' && (
+            <button
+              onClick={() => handleOpenModal()}
+              className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-colors shadow-sm"
+            >
+              <Plus size={20} />
+              <span>Add Transaction</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Controls */}
@@ -147,14 +190,17 @@ export default function TransactionsList() {
                         </span>
                       </td>
                       <td className={`px-6 py-4 text-right font-medium whitespace-nowrap ${tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-gray-100'}`}>
-                        {tx.type === 'income' ? '+' : '-'}${tx.amount.toLocaleString()}
+                        {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
                       </td>
                       {role === 'admin' && (
                         <td className="px-6 py-4 text-right whitespace-nowrap">
                           <button onClick={() => handleOpenModal(tx)} className="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-1 transition-colors">
                             <Edit2 size={18} />
                           </button>
-                          <button onClick={() => deleteTransaction(tx.id)} className="text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 ml-2 transition-colors">
+                          <button onClick={() => {
+                            deleteTransaction(tx.id);
+                            toast.success('Transaction deleted');
+                          }} className="text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 p-1 ml-2 transition-colors">
                             <Trash2 size={18} />
                           </button>
                         </td>
@@ -166,7 +212,9 @@ export default function TransactionsList() {
                     <td colSpan={role === 'admin' ? 5 : 4} className="px-6 py-16 text-center text-gray-500 dark:text-gray-400">
                       <div className="flex flex-col items-center justify-center space-y-3">
                         <Search size={40} className="text-gray-300 dark:text-gray-600" />
-                        <p className="text-lg font-medium">No transactions found for this period.</p>
+                        <p className="text-lg font-medium">
+                          {searchTerm ? `No transactions found for "${searchTerm}"` : "No transactions found for this period."}
+                        </p>
                         <p className="text-sm">Try adjusting your search or filters.</p>
                       </div>
                     </td>
@@ -186,8 +234,13 @@ export default function TransactionsList() {
             onClose={handleCloseModal} 
             editingTx={editingTx} 
             onSave={(tx) => {
-              if (editingTx) editTransaction(editingTx.id, tx);
-              else addTransaction(tx);
+              if (editingTx) {
+                editTransaction(editingTx.id, tx);
+                toast.success('Transaction updated');
+              } else {
+                addTransaction(tx);
+                toast.success('Transaction added');
+              }
               handleCloseModal();
             }} 
           />

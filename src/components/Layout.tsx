@@ -1,6 +1,7 @@
 import React, { ReactNode } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { LayoutDashboard, List, PieChart, Moon, Sun } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface LayoutProps {
   children: ReactNode;
@@ -10,6 +11,15 @@ interface LayoutProps {
 
 export default function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   const { role, setRole, isDarkMode, toggleDarkMode } = useFinance();
+
+  const handleRoleChange = (newRole: 'viewer' | 'admin') => {
+    setRole(newRole);
+    if (newRole === 'viewer') {
+      toast('Role switched to Viewer. Editing disabled.', { icon: '👁️' });
+    } else {
+      toast.success('Role switched to Admin. Editing enabled.');
+    }
+  };
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
@@ -50,7 +60,7 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
             <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Role</span>
             <select
               value={role}
-              onChange={(e) => setRole(e.target.value as 'viewer' | 'admin')}
+              onChange={(e) => handleRoleChange(e.target.value as 'viewer' | 'admin')}
               className="text-sm bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-200 cursor-pointer"
             >
               <option value="viewer">Viewer</option>
@@ -74,7 +84,7 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
         <div className="flex items-center space-x-3">
           <select
             value={role}
-            onChange={(e) => setRole(e.target.value as 'viewer' | 'admin')}
+            onChange={(e) => handleRoleChange(e.target.value as 'viewer' | 'admin')}
             className="text-sm bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-700 dark:text-gray-200 cursor-pointer"
           >
             <option value="viewer">Viewer</option>

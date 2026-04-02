@@ -3,6 +3,7 @@ import { Transaction, Role } from '../types';
 
 interface FinanceContextType {
   transactions: Transaction[];
+  isLoading: boolean;
   addTransaction: (tx: Omit<Transaction, 'id'>) => void;
   editTransaction: (id: string, tx: Omit<Transaction, 'id'>) => void;
   deleteTransaction: (id: string) => void;
@@ -30,10 +31,9 @@ const initialTransactions: Transaction[] = [
 ];
 
 export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const saved = localStorage.getItem('finance_transactions');
-    return saved ? JSON.parse(saved) : initialTransactions;
-  });
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
   const [role, setRole] = useState<Role>(() => {
     const saved = localStorage.getItem('finance_role');
     return (saved as Role) || 'viewer';
@@ -43,9 +43,30 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     return saved ? JSON.parse(saved) : false;
   });
 
+  // Mock API integration
   useEffect(() => {
-    localStorage.setItem('finance_transactions', JSON.stringify(transactions));
-  }, [transactions]);
+    const fetchTransactions = async () => {
+      setIsLoading(true);
+      // Simulate network latency
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const saved = localStorage.getItem('finance_transactions');
+      if (saved) {
+        setTransactions(JSON.parse(saved));
+      } else {
+        setTransactions(initialTransactions);
+      }
+      setIsLoading(false);
+    };
+    
+    fetchTransactions();
+  }, []);
+
+  useEffect(() => {
+    if (!isLoading) {
+      localStorage.setItem('finance_transactions', JSON.stringify(transactions));
+    }
+  }, [transactions, isLoading]);
 
   useEffect(() => {
     localStorage.setItem('finance_role', role);
@@ -81,6 +102,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     <FinanceContext.Provider
       value={{
         transactions,
+        isLoading,
         addTransaction,
         editTransaction,
         deleteTransaction,

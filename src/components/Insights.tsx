@@ -2,9 +2,10 @@ import React, { useMemo } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { TrendingUp, TrendingDown, AlertCircle, Award, Lightbulb } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { formatCurrency } from '../lib/utils';
 
 export default function Insights() {
-  const { transactions } = useFinance();
+  const { transactions, isLoading } = useFinance();
 
   const insights = useMemo(() => {
     if (transactions.length === 0) return null;
@@ -58,7 +59,7 @@ export default function Insights() {
     // Smart Tip Logic
     let smartTip = { 
       title: "Savings Opportunity", 
-      message: "You spent $0 on Transport recently—great job using sustainable travel!",
+      message: `You spent ${formatCurrency(0)} on Transport recently—great job using sustainable travel!`,
       type: "positive" 
     };
 
@@ -79,6 +80,26 @@ export default function Insights() {
       smartTip
     };
   }, [transactions]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold">Financial Insights</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-start space-x-4 animate-pulse">
+              <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full shrink-0"></div>
+              <div className="flex-1">
+                <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full mb-3"></div>
+                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (!insights) {
     return (
@@ -124,7 +145,7 @@ export default function Insights() {
               You've spent the most on <span className="font-semibold text-gray-900 dark:text-gray-100">{insights.highestCategory.name}</span> overall.
             </p>
             <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-              ${insights.highestCategory.amount.toLocaleString()}
+              {formatCurrency(insights.highestCategory.amount)}
             </p>
           </div>
         </motion.div>
@@ -141,7 +162,7 @@ export default function Insights() {
           <div>
             <h3 className="text-lg font-semibold mb-1">Recent Spending</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-2">
-              Your spending for this period is <span className="font-semibold text-gray-900 dark:text-gray-100">${insights.currentMonthExpense.toLocaleString()}</span>.
+              Your spending for this period is <span className="font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(insights.currentMonthExpense)}</span>.
             </p>
             <div className="flex items-center space-x-2">
               <span className={`font-bold ${insights.expenseChange > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
@@ -165,7 +186,7 @@ export default function Insights() {
                   Your biggest single purchase was <span className="font-semibold text-gray-900 dark:text-gray-100">{insights.largestExpense.description}</span>.
                 </p>
                 <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                  ${insights.largestExpense.amount.toLocaleString()}
+                  {formatCurrency(insights.largestExpense.amount)}
                 </p>
               </>
             ) : (

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { ArrowUpRight, ArrowDownRight, DollarSign } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { formatCurrency } from '../lib/utils';
 import {
   LineChart,
   Line,
@@ -20,7 +21,7 @@ import { format, parseISO } from 'date-fns';
 const COLORS = ['#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
 export default function DashboardOverview() {
-  const { transactions } = useFinance();
+  const { transactions, isLoading } = useFinance();
 
   const { totalIncome, totalExpense, balance } = useMemo(() => {
     return transactions.reduce(
@@ -75,6 +76,30 @@ export default function DashboardOverview() {
     show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold">Dashboard Overview</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 animate-pulse">
+              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-4"></div>
+              <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {[1, 2].map(i => (
+            <div key={i} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 animate-pulse">
+              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-6"></div>
+              <div className="h-[250px] bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">Dashboard Overview</h2>
@@ -90,7 +115,7 @@ export default function DashboardOverview() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Balance</p>
-              <p className="text-3xl font-bold mt-2">${balance.toLocaleString()}</p>
+              <p className="text-3xl font-bold mt-2">{formatCurrency(balance)}</p>
             </div>
             <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-full text-indigo-600 dark:text-indigo-400">
               <DollarSign size={24} />
@@ -102,7 +127,7 @@ export default function DashboardOverview() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Income</p>
-              <p className="text-3xl font-bold mt-2 text-emerald-600 dark:text-emerald-400">${totalIncome.toLocaleString()}</p>
+              <p className="text-3xl font-bold mt-2 text-emerald-600 dark:text-emerald-400">{formatCurrency(totalIncome)}</p>
             </div>
             <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-full text-emerald-600 dark:text-emerald-400">
               <ArrowUpRight size={24} />
@@ -114,7 +139,7 @@ export default function DashboardOverview() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Expenses</p>
-              <p className="text-3xl font-bold mt-2 text-rose-600 dark:text-rose-400">${totalExpense.toLocaleString()}</p>
+              <p className="text-3xl font-bold mt-2 text-rose-600 dark:text-rose-400">{formatCurrency(totalExpense)}</p>
             </div>
             <div className="p-3 bg-rose-50 dark:bg-rose-900/30 rounded-full text-rose-600 dark:text-rose-400">
               <ArrowDownRight size={24} />
@@ -137,10 +162,11 @@ export default function DashboardOverview() {
               <LineChart data={balanceTrendData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.1} />
                 <XAxis dataKey="date" stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
+                <YAxis stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => formatCurrency(value)} />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px', color: '#f3f4f6' }}
                   itemStyle={{ color: '#f3f4f6' }}
+                  formatter={(value: number) => formatCurrency(value)}
                 />
                 <Line type="monotone" dataKey="balance" stroke="#4f46e5" strokeWidth={3} dot={false} activeDot={{ r: 6 }} />
               </LineChart>
@@ -170,7 +196,7 @@ export default function DashboardOverview() {
                   <Tooltip
                     contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px', color: '#f3f4f6' }}
                     itemStyle={{ color: '#f3f4f6' }}
-                    formatter={(value: number) => `$${value}`}
+                    formatter={(value: number) => formatCurrency(value)}
                   />
                   <Legend />
                 </PieChart>
