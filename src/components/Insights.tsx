@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { TrendingUp, TrendingDown, AlertCircle, Award, Lightbulb } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 
 export default function Insights() {
   const { transactions } = useFinance();

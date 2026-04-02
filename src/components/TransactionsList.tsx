@@ -3,7 +3,7 @@ import { useFinance } from '../context/FinanceContext';
 import { format, parseISO } from 'date-fns';
 import { Search, Plus, Filter, ArrowUpDown, Edit2, Trash2, X } from 'lucide-react';
 import { Transaction } from '../types';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function TransactionsList() {
   const { transactions, role, addTransaction, editTransaction, deleteTransaction } = useFinance();
