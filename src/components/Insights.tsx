@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useFinance } from '../context/FinanceContext';
-import { TrendingUp, TrendingDown, AlertCircle, Award } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertCircle, Award, Lightbulb } from 'lucide-react';
+import { motion } from 'motion/react';
 
 export default function Insights() {
   const { transactions } = useFinance();
@@ -24,10 +25,13 @@ export default function Insights() {
       }
     }
 
-    // Monthly comparison (current month vs previous month)
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
+    // Monthly comparison based on the latest transaction date to avoid $0 when months change
+    const latestTxDate = expenses.length > 0 
+      ? new Date(Math.max(...expenses.map(tx => new Date(tx.date).getTime())))
+      : new Date();
+      
+    const currentMonth = latestTxDate.getMonth();
+    const currentYear = latestTxDate.getFullYear();
     
     const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
     const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
@@ -51,12 +55,28 @@ export default function Insights() {
     // Largest single transaction
     const largestExpense = expenses.reduce((max, tx) => tx.amount > max.amount ? tx : max, { amount: 0, description: '' });
 
+    // Smart Tip Logic
+    let smartTip = { 
+      title: "Savings Opportunity", 
+      message: "You spent $0 on Transport recently—great job using sustainable travel!",
+      type: "positive" 
+    };
+
+    if (categories['Transport'] > 0) {
+      smartTip = { 
+        title: "Budget Tip", 
+        message: `You've spent ${((highestCategory.amount / (currentMonthExpense || 1)) * 100).toFixed(0)}% of your recent expenses on ${highestCategory.name}.`,
+        type: "warning"
+      };
+    }
+
     return {
       highestCategory,
       currentMonthExpense,
       prevMonthExpense,
       expenseChange,
-      largestExpense
+      largestExpense,
+      smartTip
     };
   }, [transactions]);
 
@@ -70,13 +90,31 @@ export default function Insights() {
     );
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">Financial Insights</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 md:grid-cols-2 gap-6"
+      >
         {/* Highest Category */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-start space-x-4">
+        <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-start space-x-4">
           <div className="p-3 bg-amber-50 dark:bg-amber-900/30 rounded-full text-amber-600 dark:text-amber-400 shrink-0">
             <Award size={24} />
           </div>
@@ -89,10 +127,10 @@ export default function Insights() {
               ${insights.highestCategory.amount.toLocaleString()}
             </p>
           </div>
-        </div>
+        </motion.div>
 
         {/* Monthly Comparison */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-start space-x-4">
+        <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-start space-x-4">
           <div className={`p-3 rounded-full shrink-0 ${
             insights.expenseChange > 0 
               ? 'bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400' 
@@ -101,21 +139,21 @@ export default function Insights() {
             {insights.expenseChange > 0 ? <TrendingUp size={24} /> : <TrendingDown size={24} />}
           </div>
           <div>
-            <h3 className="text-lg font-semibold mb-1">Monthly Spending</h3>
+            <h3 className="text-lg font-semibold mb-1">Recent Spending</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-2">
-              Your spending this month is <span className="font-semibold text-gray-900 dark:text-gray-100">${insights.currentMonthExpense.toLocaleString()}</span>.
+              Your spending for this period is <span className="font-semibold text-gray-900 dark:text-gray-100">${insights.currentMonthExpense.toLocaleString()}</span>.
             </p>
             <div className="flex items-center space-x-2">
               <span className={`font-bold ${insights.expenseChange > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                 {insights.expenseChange > 0 ? '+' : ''}{insights.expenseChange.toFixed(1)}%
               </span>
-              <span className="text-sm text-gray-500 dark:text-gray-400">vs last month</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">vs previous period</span>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Largest Expense */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-start space-x-4 md:col-span-2">
+        <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-start space-x-4">
           <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-full text-indigo-600 dark:text-indigo-400 shrink-0">
             <AlertCircle size={24} />
           </div>
@@ -134,8 +172,28 @@ export default function Insights() {
               <p className="text-gray-500">No expenses recorded yet.</p>
             )}
           </div>
-        </div>
-      </div>
+        </motion.div>
+
+        {/* Smart Tip (4th Card) */}
+        <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-start space-x-4">
+          <div className={`p-3 rounded-full shrink-0 ${
+            insights.smartTip.type === 'positive' 
+              ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+              : 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
+          }`}>
+            <Lightbulb size={24} />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold mb-1">{insights.smartTip.title}</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-2">
+              {insights.smartTip.message}
+            </p>
+            <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400 mt-2">
+              AI-Powered Insight
+            </p>
+          </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

@@ -14,16 +14,19 @@ interface FinanceContextType {
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
+const today = new Date();
+const subDays = (date: Date, days: number) => new Date(date.getTime() - days * 24 * 60 * 60 * 1000);
+
 const initialTransactions: Transaction[] = [
-  { id: '1', date: '2026-03-01T10:00:00Z', amount: 5000, category: 'Salary', type: 'income', description: 'Monthly Salary' },
-  { id: '2', date: '2026-03-02T12:30:00Z', amount: 150, category: 'Groceries', type: 'expense', description: 'Supermarket' },
-  { id: '3', date: '2026-03-05T09:15:00Z', amount: 50, category: 'Transport', type: 'expense', description: 'Gas Station' },
-  { id: '4', date: '2026-03-10T18:45:00Z', amount: 120, category: 'Dining', type: 'expense', description: 'Dinner with friends' },
-  { id: '5', date: '2026-03-15T14:20:00Z', amount: 800, category: 'Rent', type: 'expense', description: 'Apartment Rent' },
-  { id: '6', date: '2026-03-20T11:00:00Z', amount: 200, category: 'Utilities', type: 'expense', description: 'Electricity Bill' },
-  { id: '7', date: '2026-03-25T16:30:00Z', amount: 300, category: 'Freelance', type: 'income', description: 'Web Design Project' },
-  { id: '8', date: '2026-03-28T08:00:00Z', amount: 60, category: 'Entertainment', type: 'expense', description: 'Movie Tickets' },
-  { id: '9', date: '2026-04-01T09:00:00Z', amount: 5000, category: 'Salary', type: 'income', description: 'Monthly Salary' },
+  { id: '1', date: subDays(today, 30).toISOString(), amount: 5000, category: 'Salary', type: 'income', description: 'Monthly Salary' },
+  { id: '2', date: subDays(today, 28).toISOString(), amount: 150, category: 'Groceries', type: 'expense', description: 'Supermarket' },
+  { id: '3', date: subDays(today, 25).toISOString(), amount: 50, category: 'Transport', type: 'expense', description: 'Gas Station' },
+  { id: '4', date: subDays(today, 20).toISOString(), amount: 120, category: 'Dining', type: 'expense', description: 'Dinner with friends' },
+  { id: '5', date: subDays(today, 15).toISOString(), amount: 800, category: 'Rent', type: 'expense', description: 'Apartment Rent' },
+  { id: '6', date: subDays(today, 10).toISOString(), amount: 200, category: 'Utilities', type: 'expense', description: 'Electricity Bill' },
+  { id: '7', date: subDays(today, 5).toISOString(), amount: 300, category: 'Freelance', type: 'income', description: 'Web Design Project' },
+  { id: '8', date: subDays(today, 2).toISOString(), amount: 60, category: 'Entertainment', type: 'expense', description: 'Movie Tickets' },
+  { id: '9', date: today.toISOString(), amount: 5000, category: 'Salary', type: 'income', description: 'Monthly Salary' },
 ];
 
 export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
