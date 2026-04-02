@@ -11,7 +11,6 @@ export default function Insights() {
     if (transactions.length === 0) return null;
 
     const expenses = transactions.filter(tx => tx.type === 'expense');
-    const income = transactions.filter(tx => tx.type === 'income');
 
     // Highest spending category
     const categories = expenses.reduce((acc, tx) => {
