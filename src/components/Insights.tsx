@@ -26,32 +26,29 @@ export default function Insights() {
       }
     }
 
-    // Monthly comparison based on the latest transaction date to avoid $0 when months change
+    // Rolling 15-day comparison (Apples-to-Apples)
     const latestTxDate = expenses.length > 0 
       ? new Date(Math.max(...expenses.map(tx => new Date(tx.date).getTime())))
       : new Date();
       
-    const currentMonth = latestTxDate.getMonth();
-    const currentYear = latestTxDate.getFullYear();
-    
-    const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-    const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+    const fifteenDaysAgo = new Date(latestTxDate.getTime() - 15 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(latestTxDate.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    let currentMonthExpense = 0;
-    let prevMonthExpense = 0;
+    let currentPeriodExpense = 0;
+    let prevPeriodExpense = 0;
 
     expenses.forEach(tx => {
-      const txDate = new Date(tx.date);
-      if (txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear) {
-        currentMonthExpense += tx.amount;
-      } else if (txDate.getMonth() === prevMonth && txDate.getFullYear() === prevYear) {
-        prevMonthExpense += tx.amount;
+      const txTime = new Date(tx.date).getTime();
+      if (txTime > fifteenDaysAgo.getTime() && txTime <= latestTxDate.getTime()) {
+        currentPeriodExpense += tx.amount;
+      } else if (txTime > thirtyDaysAgo.getTime() && txTime <= fifteenDaysAgo.getTime()) {
+        prevPeriodExpense += tx.amount;
       }
     });
 
-    const expenseChange = prevMonthExpense === 0 
-      ? 100 
-      : ((currentMonthExpense - prevMonthExpense) / prevMonthExpense) * 100;
+    const expenseChange = prevPeriodExpense === 0 
+      ? 0 
+      : ((currentPeriodExpense - prevPeriodExpense) / prevPeriodExpense) * 100;
 
     // Largest single transaction
     const largestExpense = expenses.reduce((max, tx) => tx.amount > max.amount ? tx : max, { amount: 0, description: '' });
@@ -66,15 +63,15 @@ export default function Insights() {
     if (categories['Transport'] > 0) {
       smartTip = { 
         title: "Budget Tip", 
-        message: `You've spent ${((highestCategory.amount / (currentMonthExpense || 1)) * 100).toFixed(0)}% of your recent expenses on ${highestCategory.name}.`,
+        message: `You've spent ${((highestCategory.amount / (currentPeriodExpense || 1)) * 100).toFixed(0)}% of your recent expenses on ${highestCategory.name}.`,
         type: "warning"
       };
     }
 
     return {
       highestCategory,
-      currentMonthExpense,
-      prevMonthExpense,
+      currentPeriodExpense,
+      prevPeriodExpense,
       expenseChange,
       largestExpense,
       smartTip
@@ -162,13 +159,13 @@ export default function Insights() {
           <div>
             <h3 className="text-lg font-semibold mb-1">Recent Spending</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-2">
-              Your spending for this period is <span className="font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(insights.currentMonthExpense)}</span>.
+              Your spending over the last 15 days is <span className="font-semibold text-gray-900 dark:text-gray-100">{formatCurrency(insights.currentPeriodExpense)}</span>.
             </p>
             <div className="flex items-center space-x-2">
               <span className={`font-bold ${insights.expenseChange > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                 {insights.expenseChange > 0 ? '+' : ''}{insights.expenseChange.toFixed(1)}%
               </span>
-              <span className="text-sm text-gray-500 dark:text-gray-400">vs previous period</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">vs previous 15 days</span>
             </div>
           </div>
         </motion.div>
